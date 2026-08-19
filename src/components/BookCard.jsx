@@ -1,16 +1,14 @@
-import { coverUrl } from '../utils/openLibrary'
+import { Link } from 'react-router-dom'
+import { coverUrl, workIdFromKey } from '../utils/openLibrary'
+import FavoriteButton from './FavoriteButton'
 
-export default function BookCard({ book, onSelect }) {
+export default function BookCard({ book }) {
   const cover = coverUrl(book.cover_i, 'M')
   const authors = book.author_name?.join(', ') ?? 'Unknown author'
 
   return (
     <li className="book-card">
-      <button
-        className="book-card__button"
-        type="button"
-        onClick={() => onSelect(book)}
-      >
+      <Link className="book-card__link" to={`/book/${workIdFromKey(book.key)}`}>
         <div className="book-card__cover">
           {cover ? (
             <img src={cover} alt={`Cover of ${book.title}`} loading="lazy" />
@@ -20,7 +18,7 @@ export default function BookCard({ book, onSelect }) {
         </div>
 
         <div className="book-card__body">
-          <h2 className="book-card__title">{book.title}</h2>
+          <h3 className="book-card__title">{book.title}</h3>
           <p className="book-card__author">{authors}</p>
           <p className="book-card__year">
             {book.first_publish_year
@@ -28,7 +26,9 @@ export default function BookCard({ book, onSelect }) {
               : 'Publication year unknown'}
           </p>
         </div>
-      </button>
+      </Link>
+
+      <FavoriteButton book={book} className="book-card__favorite" />
     </li>
   )
 }

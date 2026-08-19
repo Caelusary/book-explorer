@@ -1,54 +1,95 @@
 # Book Explorer
 
 A React book search app built on the [Open Library Search API](https://openlibrary.org/dev/docs/api/search).
-Search by title or author, browse results as cover cards, and click any card for
-full details.
+Browse what's trending, dig through genre shelves, search by title or author with
+live suggestions, and save books to a shelf that survives a reload.
 
 **Live demo:** https://book-explorer-caelusary.vercel.app
 
 ## Features
 
-- **Search input** — a controlled text input driven entirely by React state.
-- **Fetch results** — queries `https://openlibrary.org/search.json` and renders each
-  match as a card with cover, title, author, and first publish year.
-- **Loading state** — an animated spinner while the request is in flight.
+- **Lobby** — trending books load on mount, plus eight genre shelves you can
+  switch between without leaving the page.
+- **Search input** — a controlled text input with a debounced autocomplete
+  dropdown, navigable by arrow keys.
+- **Fetch results** — queries `https://openlibrary.org/search.json` and renders
+  each match as a card with cover, title, author, and first publish year.
+- **Loading state** — skeleton cards hold the grid's shape while results load,
+  so the layout doesn't jump when they arrive.
 - **Empty state** — shows `No books found.` when the API returns zero matches.
-- **Error state** — a readable message if the network request fails.
-- **Book details** — clicking a card opens a modal with subject tags, edition
-  count, language count, average rating, publishers, and a link to Open Library.
+- **Error state** — a readable message if a request fails.
+- **Book details** — every book has its own page at `/book/:workId` with a
+  description, subject tags, edition count, languages, and rating.
+- **Your shelf** — save any book with the ♡ button; the shelf persists in
+  `localStorage` between visits.
+
+## Pages
+
+| Route | Page |
+| --- | --- |
+| `/` | Lobby — trending, genre shelves, shelf preview |
+| `/search?q=` | Search results |
+| `/book/:workId` | Book details |
+| `/shelf` | Saved books |
+| `/about` | How the code maps to the requirements |
 
 ## React concepts used
 
 | Concept | Where |
 | --- | --- |
-| State | `App.jsx` holds `query`, `submittedQuery`, `books`, `loading`, `error`, `selectedBook` via `useState` |
-| Props | `App` → `SearchBar` (`value`, `onChange`, `onSubmit`), `App` → `BookList` (`books`) → `BookCard` (`book`, `onSelect`), `App` → `BookDetails` (`book`, `onClose`) |
-| useEffect | `App.jsx` fetches when `submittedQuery` changes; `BookDetails.jsx` binds the Escape key |
-| Conditional rendering | `App.jsx` switches between idle, loading, error, empty, and results views |
+| State | `useState` in `SearchBar` (query, suggestions, dropdown), `SearchPage` (results, loading, error), `HomePage` (trending and subject shelves tracked separately), `BookPage` |
+| Props | `BookList` → `BookCard` → `FavoriteButton`; `SubjectChips` takes `activeSubject` + `onSelect`; `SearchBar` takes a `variant` that switches it between hero and compact |
+| useEffect | Trending loads once on mount (`[]`); the subject shelf re-runs on `[subject]`; search re-runs on `[query]` from the URL; `useDebounce` and the click-outside handler both return cleanups |
+| Conditional rendering | Loading / error / empty / results switching in `SearchPage`, empty vs. populated shelf in `ShelfPage`, and the lobby's shelf preview only appearing once something is saved |
 
-Two extra details worth noting:
+## Notes on the implementation
 
-- The fetch effect uses an `AbortController` so a slow earlier request can never
-  overwrite the results of a newer search, and the cleanup function cancels the
-  request on unmount.
-- Typing updates `query` but not `submittedQuery`, so the API is called on submit
-  rather than on every keystroke.
+- **Typing doesn't hit the API.** The input updates state on every keystroke, but
+  `useDebounce` waits until typing pauses before requesting suggestions.
+  Responses are cached per prefix, so backspacing is instant.
+- **Every fetch is abortable.** Each effect returns a cleanup that aborts its
+  request, so a slow earlier response can never overwrite a newer one.
+- **A book page reads two endpoints at once.** The search endpoint carries the
+  author, year and edition count; the works endpoint carries the description and
+  subjects. Neither has everything, so `BookPage` fetches both in parallel — which
+  also means trending books get subject tags they don't ship with.
+- **Subject shelves use `/subjects/{slug}.json`, not a `subject:` search.** The
+  search endpoint matches the word loosely and files Harry Potter under
+  "mystery"; the curated endpoint returns Conan Doyle and Christie. It names its
+  fields differently, so `normalizeSubjectWork` maps them to the search shape and
+  `BookCard` only ever deals with one.
+- **Saved books live behind a context** rather than props, because a heart tapped
+  on the lobby has to show up on the shelf page immediately.
 
 ## Project structure
 
 ```
 src/
-  App.jsx                  state owner, fetch effect, UI state switching
-  App.css                  component styles
-  index.css                theme tokens and resets
-  main.jsx                 React entry point
+  App.jsx                  route table
+  main.jsx                 router + favorites provider
+  App.css / index.css      styles and theme tokens
   components/
-    SearchBar.jsx          controlled input + submit button
+    Layout.jsx             header, nav, footer
+    SearchBar.jsx          controlled input + autocomplete
     BookList.jsx           grid of results
     BookCard.jsx           single result card
-    BookDetails.jsx        details modal
+    SkeletonList.jsx       loading placeholders
+    SubjectChips.jsx       genre switcher
+    FavoriteButton.jsx     save toggle
+  pages/
+    HomePage.jsx           trending + subject shelves
+    SearchPage.jsx         results, loading, empty, error
+    BookPage.jsx           details for one work
+    ShelfPage.jsx          saved books
+    AboutPage.jsx          concept map
+    NotFoundPage.jsx       unmatched routes
+  hooks/
+    useDebounce.js         delays a value until typing stops
+    useLocalStorage.js     useState mirrored into localStorage
+  context/
+    FavoritesContext.jsx   shared saved-books state
   utils/
-    openLibrary.js         cover and permalink URL helpers
+    openLibrary.js         all API calls and URL helpers
 ```
 
 ## Running locally
@@ -57,8 +98,6 @@ src/
 npm install
 npm run dev
 ```
-
-The dev server prints a local URL (default `http://localhost:5173`).
 
 To build and preview the production bundle:
 
@@ -69,4 +108,6 @@ npm run preview
 
 ## Tech stack
 
-React 19, Vite, plain CSS. No API key required — Open Library is public.
+React 19, React Router 7, Vite, plain CSS. No API key required — Open Library is
+public. `vercel.json` rewrites all routes to `index.html` so deep links like
+`/book/OL27448W` work on a fresh load.

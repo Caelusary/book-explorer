@@ -152,7 +152,7 @@ describe('BookPage - failures', () => {
     renderBook('OLBOGUSW')
 
     const alert = await screen.findByRole('alert')
-    expect(alert).toHaveTextContent('404')
+    expect(alert).toHaveTextContent(/nothing at that address/i)
     // A dead end with no navigation would trap the user on a blank page.
     expect(screen.getByRole('link', { name: /back to home/i })).toHaveAttribute(
       'href',

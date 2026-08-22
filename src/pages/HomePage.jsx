@@ -96,6 +96,14 @@ export default function HomePage() {
         {!trendingLoading && !trendingError && trending.length > 0 && (
           <BookList books={trending} />
         )}
+
+        {/* A heading with nothing under it is indistinguishable from a broken
+            section. An empty result is a normal outcome and says so. */}
+        {!trendingLoading && !trendingError && trending.length === 0 && (
+          <p className="status">
+            Nothing is trending right now. Search for a title or author instead.
+          </p>
+        )}
       </section>
 
       <section className="section">
@@ -115,6 +123,12 @@ export default function HomePage() {
 
         {!subjectLoading && !subjectError && subjectBooks.length > 0 && (
           <BookList books={subjectBooks} />
+        )}
+
+        {!subjectLoading && !subjectError && subjectBooks.length === 0 && (
+          <p className="status">
+            No books are shelved under this subject yet. Try another one.
+          </p>
         )}
       </section>
     </div>

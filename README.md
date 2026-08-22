@@ -16,6 +16,10 @@ live suggestions, and save books to a shelf that survives a reload.
   each match as a card with cover, title, author, and first publish year.
 - **Loading state** — skeleton cards hold the grid's shape while results load,
   so the layout doesn't jump when they arrive.
+- **Sorting** — reorder results by relevance, newest, or rating. The order is
+  sent to Open Library rather than applied to the fetched page, so "Newest"
+  means newest in the catalogue, not newest of the current results. The choice
+  lives in the URL and is reset by a new search.
 - **Empty state** — shows `No books found.` when the API returns zero matches.
 - **Error state** — a readable message if a request fails.
 - **Book details** — every book has its own page at `/book/:workId` with a
@@ -75,6 +79,7 @@ src/
     BookCard.jsx           single result card
     SkeletonList.jsx       loading placeholders
     SubjectChips.jsx       genre switcher
+    SortSelect.jsx         result ordering control
     FavoriteButton.jsx     save toggle
   pages/
     HomePage.jsx           trending + subject shelves
@@ -90,7 +95,15 @@ src/
     FavoritesContext.jsx   shared saved-books state
   utils/
     openLibrary.js         all API calls and URL helpers
+  test/
+    setup.js               jest-dom and jest-axe matchers
+    fetchMock.js           fetch stub for API tests
+    renderWithProviders.jsx  render helper with router + favorites
+    a11y.test.jsx          axe checks across the main pages
 ```
+
+Tests sit next to what they cover as `*.test.js` / `*.test.jsx`, with shared
+helpers in `src/test/`.
 
 ## Running locally
 
@@ -106,8 +119,17 @@ npm run build
 npm run preview
 ```
 
+To run the tests:
+
+```bash
+npm test              # once
+npm run test:watch    # on change
+npm run test:coverage # with a coverage report
+```
+
 ## Tech stack
 
-React 19, React Router 7, Vite, plain CSS. No API key required — Open Library is
-public. `vercel.json` rewrites all routes to `index.html` so deep links like
+React 19, React Router 7, Vite, plain CSS. Tested with Vitest and React Testing
+Library, with jest-axe covering accessibility. Linted with oxlint. No API key
+required — Open Library is public. `vercel.json` rewrites all routes to `index.html` so deep links like
 `/book/OL27448W` work on a fresh load.

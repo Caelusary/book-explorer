@@ -191,3 +191,39 @@ describe('HomePage - shelf preview', () => {
     )
   })
 })
+
+describe('HomePage - empty is not the same as broken', () => {
+  it('says so when trending comes back successfully but empty', async () => {
+    homeFetch({ trending: [] })
+
+    renderRoute(<HomePage />, { route: '/' })
+
+    // The section heading renders either way, so the heading alone proves
+    // nothing — the point is that something explains the gap under it.
+    expect(
+      await screen.findByText(/nothing is trending right now/i),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('says so when a subject shelf comes back successfully but empty', async () => {
+    homeFetch({ subject: [] })
+
+    renderRoute(<HomePage />, { route: '/' })
+
+    expect(
+      await screen.findByText(/no books are shelved under this subject/i),
+    ).toBeInTheDocument()
+  })
+
+  it('shows the error, not the empty message, when trending fails', async () => {
+    homeFetch({ trendingFails: true })
+
+    renderRoute(<HomePage />, { route: '/' })
+
+    await screen.findByText(/could not load trending books/i)
+    expect(
+      screen.queryByText(/nothing is trending right now/i),
+    ).not.toBeInTheDocument()
+  })
+})

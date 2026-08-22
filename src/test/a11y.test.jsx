@@ -58,11 +58,8 @@ describe('accessibility', () => {
     const { container } = renderPage(<SearchPage />, '/search?q=dune')
     await screen.findByText('One')
 
-    // OPEN: heading-order. SearchPage renders an h1 and BookCard renders an h3
-    // with no h2 between them. On HomePage the section h2 makes the h3 correct;
-    // on the results page it skips a level. Fix by making the card title an h2
-    // here or giving the results grid a heading.
-    await expectNoViolations(container, { knownIssues: ['heading-order'] })
+    // The results count carries level 2, so h1 -> h2 -> h3 is unbroken.
+    await expectNoViolations(container)
   })
 
   it('the search empty state has no axe violations', async () => {
@@ -128,12 +125,10 @@ describe('accessibility', () => {
       </MemoryRouter>,
     )
 
-    // OPEN: aria-allowed-attr. The input carries aria-expanded and
-    // aria-controls without role="combobox", which is invalid ARIA, and the
-    // dropdown rows are buttons inside role="listbox" rather than role="option".
-    // Fix both together: role="combobox" + aria-autocomplete="list" on the
-    // input, role="option" + aria-selected on each row.
-    await expectNoViolations(container, { knownIssues: ['aria-allowed-attr'] })
+    // Previously carried a known aria-allowed-attr violation: aria-expanded
+    // on an input with no combobox role, and buttons standing in for options.
+    // Both are fixed, so this now asserts a clean pass with no exemptions.
+    await expectNoViolations(container)
   })
 
   it('every book cover image carries alt text naming the book', async () => {

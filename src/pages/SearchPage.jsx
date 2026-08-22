@@ -68,11 +68,16 @@ export default function SearchPage() {
 
       {query && !error && (loading || books.length > 0) && (
         <div className="results-bar">
-          <p className="results-count" role="status" aria-live="polite">
+          {/* This doubles as the grid's heading. The page h1 names the query
+              and the cards are h3s, so without a level 2 between them the
+              document outline skips a rank. `aria-live` rather than
+              role="status" on purpose: the status role would replace the
+              heading role and put the gap straight back. */}
+          <h2 className="results-count" aria-live="polite">
             {loading
               ? 'Searching…'
               : `${books.length} result${books.length === 1 ? '' : 's'}`}
-          </p>
+          </h2>
           <SortSelect value={sort} onChange={handleSortChange} disabled={loading} />
         </div>
       )}

@@ -1,20 +1,77 @@
 :root {
-  --bg: #0f1115;
-  --surface: #171a21;
-  --surface-hover: #1f232c;
-  --border: #272c37;
-  --text: #e8eaf0;
-  --text-muted: #9aa3b5;
-  --accent: #7c9cff;
-  --accent-strong: #5c7cff;
-  --danger: #ff8080;
+  /* ---- Colour ----------------------------------------------------------
+     Near-monochrome on purpose. Every book cover on screen is already
+     saturated and fighting for attention, so the interface itself stays out
+     of the way and contributes no colour of its own.
 
+     Neutrals are tinted warm rather than the usual cool blue-grey, which
+     reads as darkroom or newsprint instead of "dashboard".
+
+     The accent is a library stamp: date-due cards, spine labels, the
+     administrative side of a catalogue rather than the parchment-and-brass
+     romance of an antique library. This is a search tool, not a book.
+
+     Contrast against --bg, verified: text 15.9:1, muted 7.5:1, accent 5.3:1,
+     danger 8.4:1. All clear 4.5:1 body minimum. */
+  --bg: #0f0e0d;
+  --surface: #171614;
+  --surface-hover: #201e1b;
+  --border: #2c2926;
+  --text: #ede9e3;
+  --text-muted: #a8a099;
+  --accent: #e8563a;
+  --accent-strong: #f2704f;
+  --danger: #ff8a7a;
+
+  /* Channel triplets for the few places that need the same colours at partial
+     alpha — the translucent sticky header and the accent tints. Keeping these
+     in sync with the hex values above is the cost of not having colour-mix
+     everywhere. */
+  --bg-rgb: 15 14 13;
+  --accent-rgb: 232 86 58;
+
+  /* ---- Type ------------------------------------------------------------
+     Six steps replacing sixteen ad-hoc sizes. The ratio widens as the sizes
+     grow: dense UI chrome needs fine gradation at the bottom, while headings
+     need real jumps to register as hierarchy at all. */
+  --text-2xs: 0.75rem;                      /* 12px  overlines, meta, labels */
+  --text-xs: 0.875rem;                      /* 14px  secondary UI, controls  */
+  --text-sm: 1rem;                          /* 16px  body, card titles       */
+  --text-md: 1.25rem;                       /* 20px  brand, section titles   */
+  --text-lg: clamp(1.5rem, 3vw, 1.75rem);   /* 28px  page titles             */
+  --text-xl: clamp(2.25rem, 5.5vw, 3rem);   /* 48px  hero                    */
+
+  --leading-tight: 1.15;                    /* headings */
+  --leading-body: 1.55;                     /* prose    */
+
+  /* ---- Motion ----------------------------------------------------------
+     A real curve rather than the browser's `ease`, which decelerates too
+     weakly to feel deliberate. Everything here is short enough to read as
+     response rather than animation. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --dur-fast: 120ms;
+  --dur: 180ms;
+
+  /* Inter was declared here but never loaded — no font link exists, so this
+     has always rendered as system-ui. Dropping the dead reference rather
+     than adding a network request for a retune. */
   color-scheme: dark;
-  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial,
+    sans-serif;
 }
 
 * {
   box-sizing: border-box;
+}
+
+/* Reserve the scrollbar gutter whether or not a page needs one.
+
+   The shelf fits in the viewport while every other page scrolls, so without
+   this the scrollbar disappears on arrival, the centred layout recentres, and
+   the whole header slides 7px sideways. Reserving the gutter permanently costs
+   nothing visually and keeps the shell fixed across every route. */
+html {
+  scrollbar-gutter: stable;
 }
 
 body {
@@ -22,7 +79,20 @@ body {
   min-height: 100vh;
   background: var(--bg);
   color: var(--text);
+  font-size: var(--text-sm);
+  line-height: var(--leading-body);
   -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  line-height: var(--leading-tight);
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
 }
 
 button {
@@ -33,4 +103,38 @@ button {
 button:disabled {
   cursor: not-allowed;
   opacity: 0.5;
+}
+
+/* One focus ring for the whole app. Previously only the search input had a
+   visible focus state, which left keyboard users with no way to tell where
+   they were on any other control. :focus-visible keeps it off mouse clicks.
+
+   No border-radius here on purpose: outlines already follow the element's own
+   shape, and setting radius in a focus rule silently changes geometry on
+   anything whose radius is declared with lower specificity. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Press feedback on controls only. Deliberately not on every link: card links
+   wrap a whole cover, and shrinking a 200px card by 3% on press reads as a
+   glitch rather than as feedback. */
+button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  button:active:not(:disabled) {
+    transform: none;
+  }
 }

@@ -72,8 +72,14 @@
 .topbar__nav {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.15rem;
   margin-left: auto;
+  /* One oblong holding the three links, so navigation reads as a single
+     control rather than three loose words floating beside the search. */
+  padding: 0.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
 }
 
 .topbar__link {
@@ -84,18 +90,20 @@
   font-size: var(--text-xs);
   color: var(--text-muted);
   text-decoration: none;
-  border-radius: 8px;
+  border-radius: 999px;
   transition: color var(--dur) var(--ease-out), background var(--dur) var(--ease-out);
 }
 
 .topbar__link:hover {
   color: var(--text);
-  background: var(--surface);
+  background: var(--surface-hover);
 }
 
+/* The current page is the one thing in the header worth the accent. Against
+   the oblong's own surface a neutral fill would read as hover, not as place. */
 .topbar__link.active {
-  color: var(--text);
-  background: var(--surface);
+  color: var(--accent);
+  background: rgb(var(--accent-rgb) / 0.14);
 }
 
 .topbar__badge {
@@ -503,6 +511,9 @@
 }
 
 .results-count {
+  /* A heading by role, a caption by appearance — it labels the grid without
+     competing with the page title above it. */
+  font-weight: 400;
   margin: 0 0 1rem;
   color: var(--text-muted);
   font-size: var(--text-xs);
@@ -648,7 +659,14 @@
 }
 
 .tag {
-  padding: 0.3rem 0.7rem;
+  /* These are list items, so nothing centres their text the way a button
+     would, and they inherit the 1.55 body line-height — which leaves the
+     label riding high in the pill. Flex centring plus a tighter leading
+     puts it back on the middle. */
+  display: inline-flex;
+  align-items: center;
+  line-height: 1.2;
+  padding: 0.35rem 0.7rem;
   font-size: var(--text-2xs);
   color: var(--accent);
   background: rgb(var(--accent-rgb) / 0.12);
@@ -856,4 +874,10 @@
   .route {
     animation: none;
   }
+}
+
+/* The suggestion rows are options rather than buttons, so the pointer cue has
+   to be declared rather than inherited from a control. */
+.suggestions__item {
+  cursor: pointer;
 }

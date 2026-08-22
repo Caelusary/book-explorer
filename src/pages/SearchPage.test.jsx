@@ -150,7 +150,7 @@ describe('SearchPage - empty and error states are distinct', () => {
     renderSearch('/search?q=dune')
 
     const alert = await screen.findByRole('alert')
-    expect(alert).toHaveTextContent('500')
+    expect(alert).toHaveTextContent(/having trouble right now/i)
     expect(screen.queryByText(/no books found/i)).not.toBeInTheDocument()
   })
 

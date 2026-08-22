@@ -38,19 +38,48 @@ export function openLibraryUrl(workId) {
   return `${WORKS_URL}/works/${workId}`
 }
 
-async function getJson(url, signal) {
-  const response = await fetch(url, { signal })
-  if (!response.ok) {
-    throw new Error(`Open Library responded with ${response.status}`)
+/**
+ * Open Library's failures are shown to the reader, so they have to read as
+ * English rather than as a status code. The numeric status is kept on the
+ * error for logging; `message` is what the interface renders.
+ */
+function messageForStatus(status) {
+  if (status === 404) return 'Open Library has nothing at that address.'
+  if (status === 429) {
+    return 'Open Library is limiting requests right now. Wait a moment and try again.'
   }
+  if (status >= 500) {
+    return 'Open Library is having trouble right now. Try again in a moment.'
+  }
+  return 'Open Library could not handle that request.'
+}
+
+async function getJson(url, signal) {
+  let response
+  try {
+    response = await fetch(url, { signal })
+  } catch (error) {
+    // An aborted request is a normal part of superseding an in-flight search,
+    // so it has to reach the caller unchanged for the AbortError check there.
+    if (error.name === 'AbortError') throw error
+    // fetch only rejects on a network-level failure; HTTP errors resolve.
+    throw new Error(
+      'Could not reach Open Library. Check your connection and try again.',
+    )
+  }
+
+  if (!response.ok) {
+    const error = new Error(messageForStatus(response.status))
+    error.status = response.status
+    throw error
+  }
+
   return response.json()
 }
 
 /**
  * Sort orders offered on the results page. `param` is what the search endpoint
- * expects — relevance is its default and sends nothing. `field` is the doc
- * field a book needs for that order to mean anything; books missing it get
- * pushed to the end by `withMissingLast` below.
+ * expects — relevance is its default and sends nothing.
  *
  * Sorting happens on Open Library's side rather than locally, because it sorts
  * the whole catalogue before returning 24. Sorting the 24 we already have would
@@ -58,34 +87,13 @@ async function getJson(url, signal) {
  * much less useful thing.
  */
 export const SORT_OPTIONS = [
-  { value: 'relevance', label: 'Relevance', param: null, field: null },
-  { value: 'new', label: 'Newest', param: 'new', field: 'first_publish_year' },
-  { value: 'rating', label: 'Rating', param: 'rating', field: 'ratings_average' },
+  { value: 'relevance', label: 'Relevance', param: null },
+  { value: 'new', label: 'Newest', param: 'new' },
+  { value: 'rating', label: 'Rating', param: 'rating' },
 ]
 
 export function sortOption(value) {
   return SORT_OPTIONS.find((option) => option.value === value) ?? SORT_OPTIONS[0]
-}
-
-/**
- * Open Library scatters books with no publish year or no rating through an
- * otherwise sorted response. This moves them to the end while leaving the
- * API's ordering untouched for everything else, so "Newest" never opens with
- * a book that has no date on it.
- *
- * Stable single pass rather than a re-sort: the API already decided the order
- * that matters, and re-sorting would throw that away.
- */
-function withMissingLast(docs, field) {
-  if (!field) return docs
-
-  const present = []
-  const missing = []
-  for (const doc of docs) {
-    if (doc[field] == null) missing.push(doc)
-    else present.push(doc)
-  }
-  return present.concat(missing)
 }
 
 /** Full search used by the results page. */
@@ -94,7 +102,7 @@ export async function searchBooks(query, signal, sort = 'relevance') {
   const sortParam = option.param ? `&sort=${option.param}` : ''
   const url = `${SEARCH_URL}?q=${encodeURIComponent(query)}&limit=24&fields=${SEARCH_FIELDS}${sortParam}`
   const data = await getJson(url, signal)
-  return withMissingLast(data.docs ?? [], option.field)
+  return data.docs ?? []
 }
 
 /** Short search used by the autocomplete dropdown. */

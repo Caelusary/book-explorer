@@ -32,7 +32,7 @@ describe('SearchBar - submitting', () => {
     installFetchMock(() => ({ body: { docs: [] } }))
     renderBar()
 
-    await user.type(screen.getByRole('textbox'), 'cats & dogs')
+    await user.type(screen.getByRole('combobox'), 'cats & dogs')
     await user.click(screen.getByRole('button', { name: /^search$/i }))
 
     expect(url()).toBe('/search?q=cats%20%26%20dogs')
@@ -43,7 +43,7 @@ describe('SearchBar - submitting', () => {
     installFetchMock(() => ({ body: { docs: [] } }))
     renderBar()
 
-    await user.type(screen.getByRole('textbox'), '   dune   ')
+    await user.type(screen.getByRole('combobox'), '   dune   ')
     await user.click(screen.getByRole('button', { name: /^search$/i }))
 
     expect(url()).toBe('/search?q=dune')
@@ -57,7 +57,7 @@ describe('SearchBar - submitting', () => {
     const button = screen.getByRole('button', { name: /^search$/i })
     expect(button).toBeDisabled()
 
-    await user.type(screen.getByRole('textbox'), '   ')
+    await user.type(screen.getByRole('combobox'), '   ')
     expect(button).toBeDisabled()
   })
 
@@ -67,7 +67,7 @@ describe('SearchBar - submitting', () => {
     renderBar()
 
     // The disabled button does not protect the Enter-key path.
-    await user.type(screen.getByRole('textbox'), '   {Enter}')
+    await user.type(screen.getByRole('combobox'), '   {Enter}')
 
     expect(url()).toBe('/')
   })
@@ -79,7 +79,7 @@ describe('SearchBar - suggestions', () => {
     const net = installFetchMock(() => ({ body: { docs: [] } }))
     renderBar()
 
-    await user.type(screen.getByRole('textbox'), 'du')
+    await user.type(screen.getByRole('combobox'), 'du')
     await new Promise((resolve) => setTimeout(resolve, 500))
 
     expect(net.urls).toHaveLength(0)
@@ -92,7 +92,7 @@ describe('SearchBar - suggestions', () => {
     }))
     renderBar()
 
-    await user.type(screen.getByRole('textbox'), 'dune')
+    await user.type(screen.getByRole('combobox'), 'dune')
     await waitFor(() => expect(net.urls.length).toBeGreaterThan(0))
     await new Promise((resolve) => setTimeout(resolve, 500))
 
@@ -109,7 +109,7 @@ describe('SearchBar - suggestions', () => {
     }))
     renderBar()
 
-    const input = screen.getByRole('textbox')
+    const input = screen.getByRole('combobox')
     await user.type(input, 'dune')
     expect(await screen.findByText('Dune')).toBeInTheDocument()
 
@@ -129,7 +129,7 @@ describe('SearchBar - suggestions', () => {
     }))
     renderBar()
 
-    await user.type(screen.getByRole('textbox'), 'dune')
+    await user.type(screen.getByRole('combobox'), 'dune')
     await screen.findByText('Dune')
 
     await user.keyboard('{ArrowDown}{Enter}')
@@ -144,7 +144,7 @@ describe('SearchBar - suggestions', () => {
     }))
     renderBar()
 
-    await user.type(screen.getByRole('textbox'), 'dune')
+    await user.type(screen.getByRole('combobox'), 'dune')
     await screen.findByText('Dune')
 
     await user.keyboard('{Escape}')
@@ -157,7 +157,7 @@ describe('SearchBar - suggestions', () => {
     installFetchMock(() => ({ ok: false, status: 500, body: {} }))
     renderBar()
 
-    await user.type(screen.getByRole('textbox'), 'dune')
+    await user.type(screen.getByRole('combobox'), 'dune')
     await new Promise((resolve) => setTimeout(resolve, 500))
 
     // A failed suggestion is not worth an error state; the dropdown just stays
@@ -177,7 +177,7 @@ describe('SearchBar - suggestions', () => {
     }))
     renderBar()
 
-    const input = screen.getByRole('textbox')
+    const input = screen.getByRole('combobox')
     await user.type(input, 'dune')
     await waitFor(() => expect(net.urls).toHaveLength(1))
 

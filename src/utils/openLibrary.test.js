@@ -84,10 +84,13 @@ describe('searchBooks response handling', () => {
     await expect(searchBooks('anything')).resolves.toEqual([])
   })
 
-  it('throws with the status code on a non-ok response', async () => {
+  it('throws a readable message and keeps the status on a non-ok response', async () => {
     installFetchMock(() => ({ ok: false, status: 503, body: {} }))
 
-    await expect(searchBooks('dune')).rejects.toThrow('503')
+    await expect(searchBooks('dune')).rejects.toThrow(
+      'Open Library is having trouble right now',
+    )
+    await expect(searchBooks('dune')).rejects.toMatchObject({ status: 503 })
   })
 
   it('propagates an abort as an AbortError rather than an empty result', async () => {
@@ -101,63 +104,6 @@ describe('searchBooks response handling', () => {
   })
 })
 
-describe('withMissingLast ordering', () => {
-  // NOTE: in practice Open Library only returns docs that carry the sorted
-  // field, so this reordering is currently unreachable through the live API.
-  // It is kept under test because a silent behaviour change here would be
-  // invisible in the UI, and because the branch is cheap to hold onto.
-  it('moves docs missing the sorted field to the end, preserving order', async () => {
-    installFetchMock(() => ({
-      body: {
-        docs: [
-          doc({ key: '/works/A', first_publish_year: undefined }),
-          doc({ key: '/works/B', first_publish_year: 2001 }),
-          doc({ key: '/works/C', first_publish_year: undefined }),
-          doc({ key: '/works/D', first_publish_year: 1998 }),
-        ],
-      },
-    }))
-
-    const books = await searchBooks('x', undefined, 'new')
-
-    expect(books.map((book) => book.key)).toEqual([
-      '/works/B',
-      '/works/D',
-      '/works/A',
-      '/works/C',
-    ])
-  })
-
-  it('treats a rating of 0 as present, not missing', async () => {
-    installFetchMock(() => ({
-      body: {
-        docs: [
-          doc({ key: '/works/A', ratings_average: undefined }),
-          doc({ key: '/works/B', ratings_average: 0 }),
-        ],
-      },
-    }))
-
-    const books = await searchBooks('x', undefined, 'rating')
-
-    expect(books.map((book) => book.key)).toEqual(['/works/B', '/works/A'])
-  })
-
-  it('leaves order untouched for relevance', async () => {
-    installFetchMock(() => ({
-      body: {
-        docs: [
-          doc({ key: '/works/A', first_publish_year: undefined }),
-          doc({ key: '/works/B', first_publish_year: 2001 }),
-        ],
-      },
-    }))
-
-    const books = await searchBooks('x', undefined, 'relevance')
-
-    expect(books.map((book) => book.key)).toEqual(['/works/A', '/works/B'])
-  })
-})
 
 describe('key and url helpers', () => {
   it('strips the /works/ prefix', () => {

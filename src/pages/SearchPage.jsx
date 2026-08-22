@@ -2,20 +2,33 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import BookList from '../components/BookList'
 import SkeletonList from '../components/SkeletonList'
+import SortSelect from '../components/SortSelect'
 import { searchBooks } from '../utils/openLibrary'
 
 export default function SearchPage() {
   // The query lives in the URL, so results are shareable and the back button
   // moves between searches instead of leaving the app.
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const query = searchParams.get('q') ?? ''
+
+  // Sort sits in the URL alongside the query for the same reason: a sorted
+  // result page stays shareable and survives a refresh. Relevance is the
+  // default and writes no parameter, so ordinary search URLs stay clean.
+  const sort = searchParams.get('sort') ?? 'relevance'
 
   const [books, setBooks] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    if (!query) return
+    // Clearing the query has to clear the results with it. Returning early
+    // without doing so leaves the previous search's grid on screen underneath
+    // the empty-state prompt, which reads as two pages at once.
+    if (!query) {
+      setBooks([])
+      setError(null)
+      return
+    }
 
     // Aborts the previous request if a new search starts before it resolves,
     // so a slow early response can never overwrite a newer one.
@@ -23,7 +36,7 @@ export default function SearchPage() {
     setLoading(true)
     setError(null)
 
-    searchBooks(query, controller.signal)
+    searchBooks(query, controller.signal, sort)
       .then((docs) => {
         setBooks(docs)
         setLoading(false)
@@ -36,7 +49,16 @@ export default function SearchPage() {
       })
 
     return () => controller.abort()
-  }, [query])
+  }, [query, sort])
+
+  // `replace` keeps re-sorts out of history — the back button should return to
+  // the previous search, not step back through every ordering of this one.
+  function handleSortChange(nextSort) {
+    const next = new URLSearchParams(searchParams)
+    if (nextSort === 'relevance') next.delete('sort')
+    else next.set('sort', nextSort)
+    setSearchParams(next, { replace: true })
+  }
 
   return (
     <div className="page">
@@ -44,14 +66,18 @@ export default function SearchPage() {
         {query ? `Results for “${query}”` : 'Search'}
       </h1>
 
-      {loading && (
-        <>
+      {query && !error && (loading || books.length > 0) && (
+        <div className="results-bar">
           <p className="results-count" role="status" aria-live="polite">
-            Searching…
+            {loading
+              ? 'Searching…'
+              : `${books.length} result${books.length === 1 ? '' : 's'}`}
           </p>
-          <SkeletonList count={12} />
-        </>
+          <SortSelect value={sort} onChange={handleSortChange} disabled={loading} />
+        </div>
       )}
+
+      {loading && <SkeletonList count={12} />}
 
       {!loading && error && (
         <div className="status status--error" role="alert">
@@ -65,13 +91,8 @@ export default function SearchPage() {
         </div>
       )}
 
-      {!loading && !error && books.length > 0 && (
-        <>
-          <p className="results-count">
-            {books.length} result{books.length === 1 ? '' : 's'}
-          </p>
-          <BookList books={books} />
-        </>
+      {!loading && !error && query && books.length > 0 && (
+        <BookList books={books} />
       )}
 
       {!query && (

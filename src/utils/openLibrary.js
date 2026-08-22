@@ -46,11 +46,55 @@ async function getJson(url, signal) {
   return response.json()
 }
 
+/**
+ * Sort orders offered on the results page. `param` is what the search endpoint
+ * expects — relevance is its default and sends nothing. `field` is the doc
+ * field a book needs for that order to mean anything; books missing it get
+ * pushed to the end by `withMissingLast` below.
+ *
+ * Sorting happens on Open Library's side rather than locally, because it sorts
+ * the whole catalogue before returning 24. Sorting the 24 we already have would
+ * make "Newest" mean "newest of the most relevant", which is a different and
+ * much less useful thing.
+ */
+export const SORT_OPTIONS = [
+  { value: 'relevance', label: 'Relevance', param: null, field: null },
+  { value: 'new', label: 'Newest', param: 'new', field: 'first_publish_year' },
+  { value: 'rating', label: 'Rating', param: 'rating', field: 'ratings_average' },
+]
+
+export function sortOption(value) {
+  return SORT_OPTIONS.find((option) => option.value === value) ?? SORT_OPTIONS[0]
+}
+
+/**
+ * Open Library scatters books with no publish year or no rating through an
+ * otherwise sorted response. This moves them to the end while leaving the
+ * API's ordering untouched for everything else, so "Newest" never opens with
+ * a book that has no date on it.
+ *
+ * Stable single pass rather than a re-sort: the API already decided the order
+ * that matters, and re-sorting would throw that away.
+ */
+function withMissingLast(docs, field) {
+  if (!field) return docs
+
+  const present = []
+  const missing = []
+  for (const doc of docs) {
+    if (doc[field] == null) missing.push(doc)
+    else present.push(doc)
+  }
+  return present.concat(missing)
+}
+
 /** Full search used by the results page. */
-export async function searchBooks(query, signal) {
-  const url = `${SEARCH_URL}?q=${encodeURIComponent(query)}&limit=24&fields=${SEARCH_FIELDS}`
+export async function searchBooks(query, signal, sort = 'relevance') {
+  const option = sortOption(sort)
+  const sortParam = option.param ? `&sort=${option.param}` : ''
+  const url = `${SEARCH_URL}?q=${encodeURIComponent(query)}&limit=24&fields=${SEARCH_FIELDS}${sortParam}`
   const data = await getJson(url, signal)
-  return data.docs ?? []
+  return withMissingLast(data.docs ?? [], option.field)
 }
 
 /** Short search used by the autocomplete dropdown. */

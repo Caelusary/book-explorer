@@ -42,7 +42,13 @@ export default function Layout() {
       </header>
 
       <main className="layout__main">
-        <Outlet />
+        {/* Keyed on pathname so each route mounts fresh and replays the enter
+            transition. Query strings are deliberately excluded from the key:
+            a new search or a re-sort should update the results in place, not
+            flash the whole page. */}
+        <div className="route" key={pathname}>
+          <Outlet />
+        </div>
       </main>
 
       <footer className="footer">

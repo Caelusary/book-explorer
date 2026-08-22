@@ -3,6 +3,23 @@ import useLocalStorage from '../hooks/useLocalStorage'
 
 const FavoritesContext = createContext(null)
 
+const STORAGE_KEY = 'book-explorer:favorites'
+
+/**
+ * Guards against a stored value of the wrong shape. localStorage survives
+ * deploys and is editable by hand, so `book-explorer:favorites` can hold valid
+ * JSON that is not a list of books. Everything downstream calls .length, .some
+ * and .filter on it, so an object or a bare string there would throw during
+ * render of the layout itself — on every route, with no way to recover from
+ * inside the app.
+ */
+function isFavoriteList(value) {
+  return (
+    Array.isArray(value) &&
+    value.every((item) => item != null && typeof item.key === 'string')
+  )
+}
+
 /**
  * Favourites are shared by pages that never render each other — a heart tapped
  * on the lobby has to show up on /shelf immediately. Passing that state down as
@@ -10,10 +27,14 @@ const FavoritesContext = createContext(null)
  * instead. Everything below a page still receives it as ordinary props.
  */
 export function FavoritesProvider({ children }) {
-  const [favorites, setFavorites] = useLocalStorage('book-explorer:favorites', [])
+  const [favorites, setFavorites] = useLocalStorage(STORAGE_KEY, [], isFavoriteList)
 
   const toggleFavorite = useCallback(
     (book) => {
+      // A book with no key cannot be identified again, so it could never be
+      // un-saved and would duplicate on every tap.
+      if (!book?.key) return
+
       setFavorites((current) => {
         const exists = current.some((item) => item.key === book.key)
         if (exists) return current.filter((item) => item.key !== book.key)

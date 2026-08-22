@@ -76,6 +76,10 @@ export default function SearchBar({ variant = 'compact', autoFocus = false }) {
     if (!trimmed) return
     setIsOpen(false)
     setHighlighted(-1)
+    // Deliberately omits `sort`, so a new query lands on relevance ranking.
+    // Sort is a property of a set of results rather than a standing
+    // preference — "Newest" carried over from an unrelated earlier search is
+    // almost never what was meant.
     navigate(`/search?q=${encodeURIComponent(trimmed)}`)
   }
 
@@ -136,8 +140,20 @@ export default function SearchBar({ variant = 'compact', autoFocus = false }) {
             onKeyDown={handleKeyDown}
             autoComplete="off"
             autoFocus={autoFocus}
+            /* The full combobox contract, not just aria-expanded: that
+               attribute is only valid on a combobox role, and without it the
+               listbox below has no owner. Focus stays on the input while
+               aria-activedescendant names the highlighted row, which is what
+               lets arrow keys move a selection without moving focus. */
+            role="combobox"
+            aria-autocomplete="list"
             aria-expanded={showDropdown}
             aria-controls={`suggestions-${variant}`}
+            aria-activedescendant={
+              highlighted >= 0
+                ? `suggestion-${variant}-${highlighted}`
+                : undefined
+            }
           />
           <button
             className="search__button"
@@ -150,28 +166,40 @@ export default function SearchBar({ variant = 'compact', autoFocus = false }) {
       </form>
 
       {showDropdown && (
-        <ul className="suggestions" id={`suggestions-${variant}`} role="listbox">
+        <ul
+          className="suggestions"
+          id={`suggestions-${variant}`}
+          role="listbox"
+          aria-label="Search suggestions"
+        >
           {suggesting && suggestions.length === 0 && (
-            <li className="suggestions__status">Searching…</li>
+            <li className="suggestions__status" role="presentation">
+              Searching…
+            </li>
           )}
 
+          {/* The rows are the options themselves. They were buttons nested
+              inside the listbox, which is invalid — a listbox owns options,
+              and a focusable control inside one fights the arrow-key model
+              the input already implements. */}
           {suggestions.map((book, index) => (
-            <li key={book.key}>
-              <button
-                type="button"
-                className={
-                  'suggestions__item' +
-                  (index === highlighted ? ' suggestions__item--active' : '')
-                }
-                onMouseEnter={() => setHighlighted(index)}
-                onClick={() => openBook(book)}
-              >
-                <span className="suggestions__title">{book.title}</span>
-                <span className="suggestions__meta">
-                  {book.author_name?.[0] ?? 'Unknown author'}
-                  {book.first_publish_year ? ` · ${book.first_publish_year}` : ''}
-                </span>
-              </button>
+            <li
+              key={book.key}
+              id={`suggestion-${variant}-${index}`}
+              role="option"
+              aria-selected={index === highlighted}
+              className={
+                'suggestions__item' +
+                (index === highlighted ? ' suggestions__item--active' : '')
+              }
+              onMouseEnter={() => setHighlighted(index)}
+              onClick={() => openBook(book)}
+            >
+              <span className="suggestions__title">{book.title}</span>
+              <span className="suggestions__meta">
+                {book.author_name?.[0] ?? 'Unknown author'}
+                {book.first_publish_year ? ` · ${book.first_publish_year}` : ''}
+              </span>
             </li>
           ))}
         </ul>

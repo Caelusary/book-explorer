@@ -70,7 +70,7 @@ export function installFetchMock(handler) {
 export function doc(overrides = {}) {
   return {
     key: '/works/OL1W',
-    title: 'A Book',
+    title: 'Dune',
     author_name: ['An Author'],
     first_publish_year: 1999,
     cover_i: 111,

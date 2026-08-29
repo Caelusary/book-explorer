@@ -1,15 +1,15 @@
 import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
 import { axe } from 'jest-axe'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
+import AlsoSearched from '../components/AlsoSearched'
 import BookList from '../components/BookList'
 import SearchBar from '../components/SearchBar'
-import SortSelect from '../components/SortSelect'
-import { FavoritesProvider } from '../context/FavoritesContext'
+import LabeledSelect from '../components/LabeledSelect'
+import { SORT_OPTIONS } from '../utils/openLibrary'
+import HomePage from '../pages/HomePage'
 import NotFoundPage from '../pages/NotFoundPage'
 import SearchPage from '../pages/SearchPage'
-import ShelfPage from '../pages/ShelfPage'
 import { doc, installFetchMock } from './fetchMock'
 
 /**
@@ -20,11 +20,9 @@ import { doc, installFetchMock } from './fetchMock'
 function renderPage(ui, route = '/') {
   return render(
     <MemoryRouter initialEntries={[route]}>
-      <FavoritesProvider>
-        <Routes>
-          <Route path="*" element={ui} />
-        </Routes>
-      </FavoritesProvider>
+      <Routes>
+        <Route path="*" element={ui} />
+      </Routes>
     </MemoryRouter>,
   )
 }
@@ -80,8 +78,28 @@ describe('accessibility', () => {
     await expectNoViolations(container)
   })
 
-  it('the empty shelf has no axe violations', async () => {
-    const { container } = renderPage(<ShelfPage />, '/shelf')
+  it('the lobby has no axe violations', async () => {
+    const { container } = renderPage(<HomePage />, '/')
+    await expectNoViolations(container)
+  })
+
+  it('the near-miss row has no axe violations and is a named region', async () => {
+    const { container } = renderPage(
+      <AlsoSearched
+        books={[
+          doc({ key: '/works/OL1W', title: 'Close Enough' }),
+          doc({ key: '/works/OL2W', title: 'No Cover Here', cover_i: undefined }),
+        ]}
+      />,
+    )
+
+    // Covers here are decorative: the link is already named by the title next
+    // to it, so alt text would just make screen readers say it twice.
+    expect(
+      screen.getByRole('region', { name: /others also searched for/i }),
+    ).toBeInTheDocument()
+    expect(screen.queryAllByRole('img')).toHaveLength(0)
+
     await expectNoViolations(container)
   })
 
@@ -92,7 +110,13 @@ describe('accessibility', () => {
 
   it('the sort control has no axe violations and is labelled', async () => {
     const { container } = render(
-      <SortSelect value="relevance" onChange={() => {}} />,
+      <LabeledSelect
+        id="sort-select"
+        label="Sort by"
+        value="relevance"
+        options={SORT_OPTIONS}
+        onChange={() => {}}
+      />,
     )
 
     expect(screen.getByLabelText(/sort by/i)).toHaveRole('combobox')
@@ -102,14 +126,12 @@ describe('accessibility', () => {
   it('a book grid has no axe violations, including covers that are missing', async () => {
     const { container } = render(
       <MemoryRouter>
-        <FavoritesProvider>
-          <BookList
-            books={[
-              doc({ key: '/works/OL1W', title: 'With Cover' }),
-              doc({ key: '/works/OL2W', title: 'No Cover', cover_i: undefined }),
-            ]}
-          />
-        </FavoritesProvider>
+        <BookList
+          books={[
+            doc({ key: '/works/OL1W', title: 'With Cover' }),
+            doc({ key: '/works/OL2W', title: 'No Cover', cover_i: undefined }),
+          ]}
+        />
       </MemoryRouter>,
     )
 
@@ -121,7 +143,7 @@ describe('accessibility', () => {
 
     const { container } = render(
       <MemoryRouter>
-        <SearchBar variant="hero" />
+        <SearchBar variant="hero" initialQuery="dune" />
       </MemoryRouter>,
     )
 
@@ -134,32 +156,10 @@ describe('accessibility', () => {
   it('every book cover image carries alt text naming the book', async () => {
     render(
       <MemoryRouter>
-        <FavoritesProvider>
-          <BookList books={[doc({ key: '/works/OL1W', title: 'Dune' })]} />
-        </FavoritesProvider>
+        <BookList books={[doc({ key: '/works/OL1W', title: 'Dune' })]} />
       </MemoryRouter>,
     )
 
     expect(screen.getByRole('img', { name: 'Cover of Dune' })).toBeInTheDocument()
-  })
-
-  it('the favourite control exposes its state to assistive tech', async () => {
-    const user = userEvent.setup()
-    render(
-      <MemoryRouter>
-        <FavoritesProvider>
-          <BookList books={[doc({ key: '/works/OL1W', title: 'Dune' })]} />
-        </FavoritesProvider>
-      </MemoryRouter>,
-    )
-
-    const heart = screen.getByRole('button', { name: /save dune to shelf/i })
-    await user.click(heart)
-
-    // The glyph alone (heart outline vs filled) carries no meaning without
-    // aria-pressed and an accessible name that changes with it.
-    expect(
-      screen.getByRole('button', { name: /remove dune from shelf/i }),
-    ).toHaveAttribute('aria-pressed', 'true')
   })
 })

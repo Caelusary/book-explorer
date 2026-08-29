@@ -103,16 +103,17 @@ describe('BookPage - missing and partial data', () => {
     expect(screen.getByText('No cover')).toBeInTheDocument()
   })
 
-  it('hides the favourite control when there is no book to favourite', async () => {
+  it('still renders a title when only the works endpoint has the book', async () => {
     twoEndpoints({ searchDoc: null, work: { title: 'Only In Works' } })
 
     renderBook()
-    await screen.findByRole('heading', { level: 1 })
 
-    // FavoriteButton reads book.key; rendering it with a null book would throw.
+    // Every card-level fact comes from the search doc, so a null one has to
+    // degrade to placeholders rather than blank the page out.
     expect(
-      screen.queryByRole('button', { name: /shelf/i }),
-    ).not.toBeInTheDocument()
+      await screen.findByRole('heading', { level: 1, name: 'Only In Works' }),
+    ).toBeInTheDocument()
+    expect(screen.getByText('Unknown author')).toBeInTheDocument()
   })
 
   it('omits the description and subjects sections when the work has neither', async () => {
@@ -184,5 +185,67 @@ describe('BookPage - failures', () => {
 
     await screen.findByRole('heading', { level: 1, name: 'Fine' })
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+})
+
+describe('BookPage - going back', () => {
+  const loaded = {
+    searchDoc: { key: '/works/OL1W', title: 'Dune' },
+    work: { title: 'Dune' },
+  }
+
+  function renderFrom(state) {
+    twoEndpoints(loaded)
+    return renderRoute(<BookPage />, {
+      route: '/book/OL1W',
+      path: '/book/:workId',
+      state,
+    })
+  }
+
+  it('returns to the search the book was opened from', async () => {
+    renderFrom({ from: '/search?q=noli%20me%20tangere&in=author&sort=new' })
+    await screen.findByRole('heading', { level: 1, name: 'Dune' })
+
+    const back = screen.getByRole('link', { name: /back to/i })
+
+    // The whole query string, not just the query: coming back to the results
+    // with the scope or the sort dropped is coming back to a different page.
+    expect(back).toHaveAttribute(
+      'href',
+      '/search?q=noli%20me%20tangere&in=author&sort=new',
+    )
+  })
+
+  it('names the search it goes back to', async () => {
+    renderFrom({ from: '/search?q=dune' })
+    await screen.findByRole('heading', { level: 1, name: 'Dune' })
+
+    expect(screen.getByRole('link', { name: 'Back to “dune”' })).toBeInTheDocument()
+  })
+
+  it('falls back to home for a link opened cold', async () => {
+    // A pasted or bookmarked link arrives with no origin, and there is no
+    // result set behind it to invent.
+    renderFrom(undefined)
+    await screen.findByRole('heading', { level: 1, name: 'Dune' })
+
+    const back = screen.getByRole('link', { name: 'Back to home' })
+    expect(back).toHaveAttribute('href', '/')
+  })
+
+  it('offers the same way back when the book fails to load', async () => {
+    installFetchMock(() => ({ ok: false, status: 500 }))
+    renderRoute(<BookPage />, {
+      route: '/book/OL1W',
+      path: '/book/:workId',
+      state: { from: '/search?q=dune' },
+    })
+
+    await screen.findByRole('alert')
+    expect(screen.getByRole('link', { name: 'Back to “dune”' })).toHaveAttribute(
+      'href',
+      '/search?q=dune',
+    )
   })
 })

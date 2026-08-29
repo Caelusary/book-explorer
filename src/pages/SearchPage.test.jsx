@@ -1,7 +1,8 @@
-import { screen, waitFor, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import { doc, installFetchMock } from '../test/fetchMock'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { renderRoute } from '../test/renderWithProviders'
 import SearchPage from './SearchPage'
 
@@ -55,7 +56,7 @@ describe('SearchPage - sort reaches the request', () => {
 
     renderSearch('/search?q=dune&sort=new')
 
-    await screen.findByText('A Book')
+    await screen.findByText('Dune')
     expect(searchUrls(net)[0]).toContain('sort=new')
   })
 
@@ -64,7 +65,7 @@ describe('SearchPage - sort reaches the request', () => {
 
     renderSearch('/search?q=dune')
 
-    await screen.findByText('A Book')
+    await screen.findByText('Dune')
     expect(searchUrls(net)[0]).not.toContain('sort=')
   })
 
@@ -73,13 +74,13 @@ describe('SearchPage - sort reaches the request', () => {
     const net = installFetchMock((url) => ({
       body: {
         docs: url.includes('sort=rating')
-          ? [doc({ key: '/works/OL2W', title: 'Top Rated' })]
-          : [doc({ key: '/works/OL1W', title: 'Most Relevant' })],
+          ? [doc({ key: '/works/OL2W', title: 'Dune Top Rated' })]
+          : [doc({ key: '/works/OL1W', title: 'Dune Most Relevant' })],
       },
     }))
 
     renderSearch('/search?q=dune')
-    await screen.findByText('Most Relevant')
+    await screen.findByText('Dune Most Relevant')
 
     await user.selectOptions(screen.getByLabelText(/sort by/i), 'rating')
 
@@ -88,8 +89,8 @@ describe('SearchPage - sort reaches the request', () => {
     // second check and failed the first.
     await waitFor(() => expect(searchUrls(net)).toHaveLength(2))
     expect(searchUrls(net)[1]).toContain('sort=rating')
-    expect(await screen.findByText('Top Rated')).toBeInTheDocument()
-    expect(screen.queryByText('Most Relevant')).not.toBeInTheDocument()
+    expect(await screen.findByText('Dune Top Rated')).toBeInTheDocument()
+    expect(screen.queryByText('Dune Most Relevant')).not.toBeInTheDocument()
   })
 
   it('drops the sort parameter when switching back to relevance', async () => {
@@ -97,7 +98,7 @@ describe('SearchPage - sort reaches the request', () => {
     const net = installFetchMock(() => ({ body: { docs: [doc()] } }))
 
     renderSearch('/search?q=dune&sort=rating')
-    await screen.findByText('A Book')
+    await screen.findByText('Dune')
 
     await user.selectOptions(screen.getByLabelText(/sort by/i), 'relevance')
 
@@ -113,7 +114,7 @@ describe('SearchPage - sort reaches the request', () => {
     const net = installFetchMock(() => ({ body: { docs: [doc()] } }))
 
     renderSearch('/search?q=dune&sort=new')
-    await screen.findByText('A Book')
+    await screen.findByText('Dune')
 
     await user.selectOptions(screen.getByLabelText(/sort by/i), 'new')
 
@@ -159,19 +160,19 @@ describe('SearchPage - empty and error states are distinct', () => {
     installFetchMock(() => {
       call += 1
       return call === 1
-        ? { body: { docs: [doc({ title: 'First Result' })] } }
+        ? { body: { docs: [doc({ title: 'Dune First Result' })] } }
         : { ok: false, status: 500, body: {} }
     })
 
     const { rerender } = renderSearch('/search?q=dune')
-    await screen.findByText('First Result')
+    await screen.findByText('Dune First Result')
 
     // Re-mounting at a new query is what the router does on a fresh search.
     rerender(<div />)
     renderSearch('/search?q=other')
 
     await screen.findByRole('alert')
-    expect(screen.queryByText('First Result')).not.toBeInTheDocument()
+    expect(screen.queryByText('Dune First Result')).not.toBeInTheDocument()
   })
 
   it('shows loading skeletons before the response lands', async () => {
@@ -180,7 +181,7 @@ describe('SearchPage - empty and error states are distinct', () => {
     renderSearch('/search?q=dune')
 
     expect(screen.getByText(/searching/i)).toBeInTheDocument()
-    expect(await screen.findByText('A Book')).toBeInTheDocument()
+    expect(await screen.findByText('Dune')).toBeInTheDocument()
     expect(screen.queryByText(/searching/i)).not.toBeInTheDocument()
   })
 })
@@ -192,8 +193,8 @@ describe('SearchPage - stale responses cannot win', () => {
       // The first (relevance) response is deliberately the slow one.
       body: {
         docs: url.includes('sort=new')
-          ? [doc({ key: '/works/NEW', title: 'Newer Response' })]
-          : [doc({ key: '/works/OLD', title: 'Stale Response' })],
+          ? [doc({ key: '/works/NEW', title: 'Dune Newer Response' })]
+          : [doc({ key: '/works/OLD', title: 'Dune Stale Response' })],
       },
       delayMs: url.includes('sort=new') ? 0 : 120,
     }))
@@ -202,10 +203,10 @@ describe('SearchPage - stale responses cannot win', () => {
 
     // The select is disabled while loading, so let the first search settle,
     // then start a second one and check the first one's signal was cut.
-    await screen.findByText('Stale Response')
+    await screen.findByText('Dune Stale Response')
     await user.selectOptions(screen.getByLabelText(/sort by/i), 'new')
 
-    expect(await screen.findByText('Newer Response')).toBeInTheDocument()
+    expect(await screen.findByText('Dune Newer Response')).toBeInTheDocument()
 
     // The first request's controller must have been aborted by the effect
     // cleanup, not merely ignored on arrival.
@@ -235,7 +236,7 @@ describe('SearchPage - stale responses cannot win', () => {
     installFetchMock(() => ({ body: { docs: [doc()] } }))
     renderSearch('/search?q=dune')
 
-    await screen.findByText('A Book')
+    await screen.findByText('Dune')
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 })
@@ -245,21 +246,21 @@ describe('SearchPage - results grid', () => {
     installFetchMock(() => ({
       body: {
         docs: [
-          doc({ key: '/works/OL1W', title: 'One' }),
-          doc({ key: '/works/OL2W', title: 'Two' }),
+          doc({ key: '/works/OL1W', title: 'Dune One' }),
+          doc({ key: '/works/OL2W', title: 'Dune Two' }),
         ],
       },
     }))
 
     renderSearch('/search?q=dune')
 
-    await screen.findByText('One')
+    await screen.findByText('Dune One')
     expect(screen.getAllByRole('listitem')).toHaveLength(2)
-    expect(screen.getByText('One').closest('a')).toHaveAttribute(
+    expect(screen.getByText('Dune One').closest('a')).toHaveAttribute(
       'href',
       '/book/OL1W',
     )
-    expect(screen.getByText('Two').closest('a')).toHaveAttribute(
+    expect(screen.getByText('Dune Two').closest('a')).toHaveAttribute(
       'href',
       '/book/OL2W',
     )
@@ -271,7 +272,7 @@ describe('SearchPage - results grid', () => {
         docs: [
           {
             key: '/works/OL9W',
-            title: 'Bare Minimum',
+            title: 'Dune Bare Minimum',
           },
         ],
       },
@@ -279,9 +280,222 @@ describe('SearchPage - results grid', () => {
 
     renderSearch('/search?q=dune')
 
-    const card = (await screen.findByText('Bare Minimum')).closest('li')
+    const card = (await screen.findByText('Dune Bare Minimum')).closest('li')
     expect(within(card).getByText('Unknown author')).toBeInTheDocument()
     expect(within(card).getByText('Publication year unknown')).toBeInTheDocument()
     expect(within(card).getByText('No cover')).toBeInTheDocument()
+  })
+})
+
+describe('SearchPage - the search field holds the query', () => {
+  it('seeds the field from the URL instead of showing an empty box', async () => {
+    installFetchMock(() => ({ body: { docs: [doc()] } }))
+
+    renderSearch('/search?q=dune')
+    await screen.findByText('Dune')
+
+    expect(screen.getByRole('combobox', { name: /search books/i })).toHaveValue(
+      'dune',
+    )
+  })
+
+  it('requests suggestions only once the field is actually used', async () => {
+    const user = userEvent.setup()
+    const net = installFetchMock(() => ({ body: { docs: [doc()] } }))
+
+    renderSearch('/search?q=dune')
+    await screen.findByText('Dune')
+
+    // One request: the search itself. Seeding the field must not also trigger
+    // the autocomplete for text the visitor never typed.
+    expect(searchUrls(net)).toHaveLength(1)
+
+    await user.click(screen.getByRole('combobox', { name: /search books/i }))
+    await waitFor(() => expect(searchUrls(net).length).toBeGreaterThan(1))
+  })
+
+  it('returns to the lobby when the field is cleared', async () => {
+    const user = userEvent.setup()
+    installFetchMock(() => ({ body: { docs: [doc()] } }))
+
+    render(
+      <MemoryRouter initialEntries={['/search?q=dune']}>
+        <Routes>
+          <Route path="/" element={<p>Lobby</p>} />
+          <Route path="/search" element={<SearchPage />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+    await screen.findByText('Dune')
+
+    await user.clear(screen.getByRole('combobox', { name: /search books/i }))
+
+    expect(await screen.findByText('Lobby')).toBeInTheDocument()
+  })
+})
+
+describe('SearchPage - exact matches versus near misses', () => {
+  const mixed = () =>
+    installFetchMock(() => ({
+      body: {
+        docs: [
+          doc({ key: '/works/OL1W', title: 'Dune Messiah' }),
+          doc({ key: '/works/OL2W', title: 'Something Unrelated' }),
+        ],
+      },
+    }))
+
+  it('puts only the real matches in the results grid', async () => {
+    mixed()
+
+    renderSearch('/search?q=dune')
+    await screen.findByText('Dune Messiah')
+
+    // Cards render their title as a heading; the demoted row renders spans.
+    // Asserting on the role is what separates the two lists.
+    expect(
+      screen.getByRole('heading', { name: 'Dune Messiah' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('heading', { name: 'Something Unrelated' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('counts only the real matches', async () => {
+    mixed()
+
+    renderSearch('/search?q=dune')
+
+    // Two docs came back; one of them is a guess, so the page says one result.
+    expect(await screen.findByText('1 result')).toBeInTheDocument()
+  })
+
+  it('offers the near misses under their own heading', async () => {
+    mixed()
+
+    renderSearch('/search?q=dune')
+    await screen.findByText('Dune Messiah')
+
+    const also = screen.getByRole('region', { name: /others also searched for/i })
+    expect(within(also).getByText('Something Unrelated')).toBeInTheDocument()
+  })
+
+  it('promotes the near misses into the grid when nothing matches exactly', async () => {
+    installFetchMock(() => ({
+      body: { docs: [doc({ key: '/works/OL3W', title: 'Not It' })] },
+    }))
+
+    renderSearch('/search?q=asd')
+
+    // The API answered, so the page must not claim it found nothing. The brief
+    // reserves that message for an empty response, and a real book reported as
+    // no results reads as a broken search rather than a strict filter.
+    expect(await screen.findByRole('heading', { name: 'Not It' })).toBeInTheDocument()
+    expect(screen.queryByText('No books found.')).not.toBeInTheDocument()
+    expect(screen.getByText(/closest/i)).toBeInTheDocument()
+    expect(screen.getByText('1 close result')).toBeInTheDocument()
+
+    // They are the results now, so there is no separate row of them.
+    expect(
+      screen.queryByRole('region', { name: /others also searched for/i }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('says No books found. only when the API returned nothing at all', async () => {
+    installFetchMock(() => ({ body: { docs: [] } }))
+
+    renderSearch('/search?q=zzqwxplt')
+
+    expect(await screen.findByText('No books found.')).toBeInTheDocument()
+    expect(
+      screen.queryByRole('region', { name: /others also searched for/i }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('keeps the near-miss row separate while there are real matches', async () => {
+    mixed()
+
+    renderSearch('/search?q=dune')
+    await screen.findByText('Dune Messiah')
+
+    // Unchanged behaviour for the ordinary case: exact matches lead the grid
+    // and the near misses stay demoted below them.
+    expect(screen.getByText('1 result')).toBeInTheDocument()
+    expect(screen.queryByText(/closest/i)).not.toBeInTheDocument()
+    const also = screen.getByRole('region', { name: /others also searched for/i })
+    expect(within(also).getByText('Something Unrelated')).toBeInTheDocument()
+  })
+
+  it('omits the section entirely when every doc was a real match', async () => {
+    installFetchMock(() => ({
+      body: { docs: [doc({ key: '/works/OL1W', title: 'Dune' })] },
+    }))
+
+    renderSearch('/search?q=dune')
+    await screen.findByText('Dune')
+
+    expect(
+      screen.queryByRole('region', { name: /others also searched for/i }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('over-fetches so the filter cannot leave the grid half empty', async () => {
+    const net = installFetchMock(() => ({ body: { docs: [doc()] } }))
+
+    renderSearch('/search?q=dune')
+    await screen.findByText('Dune')
+
+    expect(searchUrls(net)[0]).toContain('limit=48')
+  })
+})
+
+describe('SearchPage - queries below the API floor', () => {
+  it('does not request a query Open Library would reject', async () => {
+    // "ad" came back 422 "Query too short", which the page rendered as
+    // "Open Library could not handle that request" — a broken-sounding
+    // message for a rule the app already enforced in its own dropdown.
+    const net = installFetchMock(() => ({ body: { docs: [] } }))
+
+    renderSearch('/search?q=ad')
+
+    expect(
+      await screen.findByText(/at least 3 characters/i),
+    ).toBeInTheDocument()
+    expect(searchUrls(net)).toHaveLength(0)
+  })
+
+  it('does not claim there are no books for a query it never ran', async () => {
+    installFetchMock(() => ({ body: { docs: [] } }))
+
+    renderSearch('/search?q=ad')
+
+    await screen.findByText(/at least 3 characters/i)
+    expect(screen.queryByText('No books found.')).not.toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('searches as soon as the query is long enough', async () => {
+    const net = installFetchMock(() => ({
+      body: { docs: [doc({ key: '/works/OL1W', title: 'Adventures' })] },
+    }))
+
+    renderSearch('/search?q=adv')
+
+    expect(await screen.findByText('Adventures')).toBeInTheDocument()
+    expect(searchUrls(net)).toHaveLength(1)
+    expect(screen.queryByText(/at least 3 characters/i)).not.toBeInTheDocument()
+  })
+
+  it('reads a short query as too short rather than as no query at all', async () => {
+    installFetchMock(() => ({ body: { docs: [] } }))
+
+    renderSearch('/search?q=ad')
+
+    await screen.findByText(/at least 3 characters/i)
+    // The empty-query prompt belongs to an untouched search box, not to one
+    // holding two characters.
+    expect(
+      screen.queryByText(/type something into the search box/i),
+    ).not.toBeInTheDocument()
   })
 })

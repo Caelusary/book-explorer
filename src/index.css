@@ -30,6 +30,12 @@
   --bg-rgb: 15 14 13;
   --accent-rgb: 232 86 58;
 
+  /* The recess a cover sits in: darker than --surface so the card reads as a
+     frame around it rather than as a panel behind it. A token because three
+     separate places were each hardcoding their own cool blue-grey into an
+     explicitly warm palette. */
+  --cover-well: #121110;
+
   /* ---- Type ------------------------------------------------------------
      Six steps replacing sixteen ad-hoc sizes. The ratio widens as the sizes
      grow: dense UI chrome needs fine gradation at the bottom, while headings

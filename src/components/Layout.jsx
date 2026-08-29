@@ -1,13 +1,7 @@
-import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
-import SearchBar from './SearchBar'
-import { useFavorites } from '../context/FavoritesContext'
+import { Link, Outlet, useLocation } from 'react-router-dom'
 
 export default function Layout() {
   const { pathname } = useLocation()
-  const { favorites } = useFavorites()
-
-  // The lobby carries its own hero-sized search, so the header omits it there.
-  const showHeaderSearch = pathname !== '/'
 
   return (
     <div className="layout">
@@ -15,29 +9,8 @@ export default function Layout() {
         <div className="topbar__inner">
           <Link className="topbar__brand" to="/">
             <span className="topbar__mark" aria-hidden="true">◆</span>
-            Book Explorer
+            Shelf Help
           </Link>
-
-          {showHeaderSearch && (
-            <div className="topbar__search">
-              <SearchBar variant="compact" />
-            </div>
-          )}
-
-          <nav className="topbar__nav">
-            <NavLink to="/" end className="topbar__link">
-              Home
-            </NavLink>
-            <NavLink to="/shelf" className="topbar__link">
-              Shelf
-              {favorites.length > 0 && (
-                <span className="topbar__badge">{favorites.length}</span>
-              )}
-            </NavLink>
-            <NavLink to="/about" className="topbar__link">
-              About
-            </NavLink>
-          </nav>
         </div>
       </header>
 

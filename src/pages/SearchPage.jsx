@@ -28,10 +28,6 @@ export default function SearchPage() {
   // shared link. "All" is the default and writes nothing.
   const mode = searchParams.get('in') ?? 'all'
 
-  const [docs, setDocs] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
-
   const navigate = useNavigate()
 
   // Open Library answers anything shorter than this with a 422, which the app
@@ -41,36 +37,46 @@ export default function SearchPage() {
   // Answering it here costs no request and says the actual reason.
   const tooShort = query.length > 0 && query.trim().length < MIN_QUERY_LENGTH
 
+  // Nothing is fetched for an empty or too-short query, and clearing the
+  // query has to clear the results with it — otherwise the previous search's
+  // grid stays on screen underneath the empty-state prompt, which reads as two
+  // pages at once.
+  const shouldFetch = query !== '' && !tooShort
+  const requestKey = JSON.stringify([query, sort, mode])
+
+  // The last settled response, tagged with the request that produced it.
+  // Loading, results and error are all derived from whether that tag matches
+  // the current URL, so nothing has to be reset by hand when the search
+  // changes.
+  const [result, setResult] = useState(null)
+
   useEffect(() => {
-    // Clearing the query has to clear the results with it. Returning early
-    // without doing so leaves the previous search's grid on screen underneath
-    // the empty-state prompt, which reads as two pages at once.
-    if (!query || tooShort) {
-      setDocs([])
-      setError(null)
-      return
-    }
+    if (!shouldFetch) return
 
     // Aborts the previous request if a new search starts before it resolves,
     // so a slow early response can never overwrite a newer one.
     const controller = new AbortController()
-    setLoading(true)
-    setError(null)
 
     searchBooks(query, controller.signal, sort, mode)
       .then((results) => {
-        setDocs(results)
-        setLoading(false)
+        setResult({ key: requestKey, docs: results, error: null })
       })
       .catch((err) => {
         if (err.name === 'AbortError') return
-        setError(err.message || 'Something went wrong. Please try again.')
-        setDocs([])
-        setLoading(false)
+        setResult({
+          key: requestKey,
+          docs: [],
+          error: err.message || 'Something went wrong. Please try again.',
+        })
       })
 
     return () => controller.abort()
-  }, [query, sort, mode, tooShort])
+  }, [query, sort, mode, shouldFetch, requestKey])
+
+  const current = shouldFetch && result?.key === requestKey ? result : null
+  const loading = shouldFetch && current === null
+  const docs = current?.docs ?? []
+  const error = current?.error ?? null
 
   // Split at render rather than in the effect: the raw response is what the
   // request produced, and the split is a view of it. Keeping them separate

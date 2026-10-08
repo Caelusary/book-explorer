@@ -209,6 +209,16 @@
     background var(--dur) var(--ease-out);
 }
 
+/* On touch the compact padding left both selects and the Open Library button
+   35px tall, under the 44px a thumb needs. Mouse users keep the tighter
+   controls. */
+@media (pointer: coarse) {
+  .control__select,
+  .external-link {
+    min-height: 44px;
+  }
+}
+
 .control__select:hover:not(:disabled) {
   background: var(--surface-hover);
   border-color: var(--accent);
@@ -719,6 +729,10 @@
 .book-page__info {
   flex: 1 1 340px;
   min-width: 280px;
+  /* Descriptions carry raw URLs and other unbroken strings, and one of them
+     widened the whole page on a phone. Break inside a word only when nothing
+     else fits. */
+  overflow-wrap: anywhere;
 }
 
 .book-page__title {

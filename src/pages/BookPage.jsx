@@ -28,15 +28,14 @@ export default function BookPage() {
   const backQuery = new URLSearchParams(backTo.split('?')[1] ?? '').get('q')
   const backLabel = backQuery ? `Back to “${backQuery}”` : 'Back to home'
 
-  const [book, setBook] = useState(null)
-  const [detail, setDetail] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  // One settled response, tagged with the work it belongs to. Loading is not
+  // stored: it is simply "the response on hand is not for this workId yet",
+  // which is also true on first render and the moment the route changes, so
+  // the spinner appears without an extra render to switch it on.
+  const [result, setResult] = useState(null)
 
   useEffect(() => {
     const controller = new AbortController()
-    setLoading(true)
-    setError(null)
 
     // Two endpoints in parallel: one carries author, year and edition count,
     // the other carries the description and subjects. Neither has all of it.
@@ -44,19 +43,25 @@ export default function BookPage() {
       fetchBookByKey(workId, controller.signal),
       fetchWorkDetail(workId, controller.signal),
     ])
-      .then(([searchDoc, workDetail]) => {
-        setBook(searchDoc)
-        setDetail(workDetail)
-        setLoading(false)
+      .then(([book, detail]) => {
+        setResult({ workId, book, detail, error: null })
       })
       .catch((err) => {
         if (err.name === 'AbortError') return
-        setError(err.message || 'Could not load this book.')
-        setLoading(false)
+        setResult({
+          workId,
+          book: null,
+          detail: null,
+          error: err.message || 'Could not load this book.',
+        })
       })
 
     return () => controller.abort()
   }, [workId])
+
+  const current = result?.workId === workId ? result : null
+  const loading = current === null
+  const { book, detail, error } = current ?? {}
 
   if (loading) {
     return (

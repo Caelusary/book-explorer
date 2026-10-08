@@ -59,44 +59,52 @@ export default function SearchBar({
 
   // Open Library takes roughly a second to answer, so results for prefixes
   // already typed are kept and reused. Backspacing feels instant as a result.
-  const cacheRef = useRef(new Map())
+  // Held in state rather than a ref because render reads it below; the Map
+  // itself is only ever added to, right before the setState that re-renders.
+  const [cache] = useState(() => new Map())
 
   const debouncedQuery = useDebounce(query, 350)
+  const trimmed = debouncedQuery.trim()
+  const cacheKey = `${mode}:${trimmed}`
 
-  useEffect(() => {
-    const trimmed = debouncedQuery.trim()
+  // Nothing to suggest into while the dropdown is closed. This also stops the
+  // results page requesting suggestions for the query it was seeded with: the
+  // field arrives holding text nobody typed, and without this gate the
+  // debounce would fire a second, pointless request on every results page
+  // load. Below three characters the suggestions are mostly noise, and Open
+  // Library rejects the request outright anyway.
+  const tooShort = trimmed.length < MIN_QUERY_LENGTH
+  const needsFetch = isOpen && !tooShort && !cache.has(cacheKey)
 
-    // Nothing to suggest into. This also stops the results page requesting
-    // suggestions for the query it was seeded with: the field arrives holding
-    // text nobody typed, and without this gate the debounce would fire a
-    // second, pointless request on every results page load.
+  // Everything that can be settled without a request is settled here, during
+  // render, when the debounced input changes — the same adjust-on-change
+  // pattern as the seeding above. The effect below is then left with only the
+  // network call.
+  const requestId = `${isOpen}|${cacheKey}`
+  const [lastRequestId, setLastRequestId] = useState(requestId)
+  if (requestId !== lastRequestId) {
+    setLastRequestId(requestId)
     if (!isOpen) {
       setSuggesting(false)
-      return
-    }
-
-    // Below three characters the suggestions are mostly noise, and Open
-    // Library rejects the request outright anyway.
-    if (trimmed.length < MIN_QUERY_LENGTH) {
+    } else if (tooShort) {
       setSuggestions([])
       setSuggesting(false)
-      return
-    }
-
-    const cacheKey = `${mode}:${trimmed}`
-    const cached = cacheRef.current.get(cacheKey)
-    if (cached) {
-      setSuggestions(cached)
+    } else if (cache.has(cacheKey)) {
+      setSuggestions(cache.get(cacheKey))
       setSuggesting(false)
-      return
+    } else {
+      setSuggesting(true)
     }
+  }
+
+  useEffect(() => {
+    if (!needsFetch) return
 
     const controller = new AbortController()
-    setSuggesting(true)
 
     suggestBooks(trimmed, controller.signal, mode)
       .then((books) => {
-        cacheRef.current.set(cacheKey, books)
+        cache.set(cacheKey, books)
         setSuggestions(books)
         setSuggesting(false)
       })
@@ -109,7 +117,7 @@ export default function SearchBar({
       })
 
     return () => controller.abort()
-  }, [debouncedQuery, isOpen, mode])
+  }, [needsFetch, trimmed, cacheKey, cache, mode])
 
   // Clicking anywhere else on the page dismisses the dropdown.
   useEffect(() => {

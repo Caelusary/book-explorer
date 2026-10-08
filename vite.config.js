@@ -11,6 +11,8 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.js'],
     include: ['src/**/*.{test,spec}.{js,jsx}'],
     restoreMocks: true,
+    // Parallel worker start-up times out on Windows; two workers keep the suite reliable.
+    maxWorkers: 2,
     coverage: {
       provider: 'v8',
       reportsDirectory: './coverage',

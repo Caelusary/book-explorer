@@ -67,7 +67,34 @@ function messageForStatus(status) {
   return 'Open Library could not handle that request.'
 }
 
+/**
+ * Successful responses, keyed by URL. Open Library answers the same URL the
+ * same way for everyone, and the app asks for the same URLs again constantly:
+ * the back button from a book remounts the results page and reruns its search,
+ * and reopening a book refetches both its endpoints. Only successes are kept,
+ * so an error is always retried. Capped so a long session cannot grow it
+ * without limit; the oldest entry goes first.
+ */
+const responseCache = new Map()
+const CACHE_LIMIT = 100
+
+/** Test hook: each test starts with an empty cache. */
+export function clearResponseCache() {
+  responseCache.clear()
+}
+
 async function getJson(url, signal) {
+  if (responseCache.has(url)) return responseCache.get(url)
+
+  const data = await fetchJson(url, signal)
+  responseCache.set(url, data)
+  if (responseCache.size > CACHE_LIMIT) {
+    responseCache.delete(responseCache.keys().next().value)
+  }
+  return data
+}
+
+async function fetchJson(url, signal) {
   let response
   try {
     response = await fetch(url, { signal })

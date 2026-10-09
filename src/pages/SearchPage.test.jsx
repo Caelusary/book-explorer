@@ -280,7 +280,7 @@ describe('SearchPage - results grid', () => {
 
     renderSearch('/search?q=dune')
 
-    const card = (await screen.findByText('Dune Bare Minimum')).closest('li')
+    const card = (await screen.findByRole('heading', { level: 3, name: 'Dune Bare Minimum' })).closest('li')
     expect(within(card).getByText('Unknown author')).toBeInTheDocument()
     expect(within(card).getByText('Publication year unknown')).toBeInTheDocument()
     expect(within(card).getByText('No cover')).toBeInTheDocument()

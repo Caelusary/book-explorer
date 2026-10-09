@@ -6,6 +6,8 @@ import {
   fetchWorkDetail,
   openLibraryUrl,
 } from '../utils/openLibrary'
+import BlankCover from '../components/BlankCover'
+import StatusPanel from '../components/StatusPanel'
 
 export default function BookPage() {
   // :workId comes from the route, so this page works from a pasted link with
@@ -66,10 +68,21 @@ export default function BookPage() {
   if (loading) {
     return (
       <div className="page">
-        <div className="status" role="status" aria-live="polite">
-          <span className="spinner" aria-hidden="true" />
-          <p>Loading book…</p>
+        {/* The page's own shape, so the cover and title land where the
+            placeholder already was instead of replacing a spinner. */}
+        <div className="book-page__top book-skeleton" aria-hidden="true">
+          <div className="book-page__cover">
+            <div className="book-skeleton__cover skeleton__shine" />
+          </div>
+          <div className="book-page__info">
+            <div className="book-skeleton__line book-skeleton__line--title skeleton__shine" />
+            <div className="book-skeleton__line skeleton__shine" />
+            <div className="book-skeleton__card skeleton__shine" />
+          </div>
         </div>
+        <p className="visually-hidden" role="status" aria-live="polite">
+          Loading book…
+        </p>
       </div>
     )
   }
@@ -77,12 +90,12 @@ export default function BookPage() {
   if (error) {
     return (
       <div className="page">
-        <div className="status status--error" role="alert">
-          <p>{error}</p>
+        <StatusPanel stamp="Request failed" tone="error" role="alert">
+          <p className="status__text">{error}</p>
           <Link className="button-link" to={backTo}>
             {backLabel}
           </Link>
-        </div>
+        </StatusPanel>
       </div>
     )
   }
@@ -120,7 +133,7 @@ export default function BookPage() {
           {cover ? (
             <img src={cover} alt={`Cover of ${title}`} />
           ) : (
-            <span className="book-card__no-cover">No cover</span>
+            <BlankCover title={title} size="large" />
           )}
         </div>
 
@@ -131,6 +144,8 @@ export default function BookPage() {
             {book?.author_name?.join(', ') ?? 'Unknown author'}
           </p>
 
+          {/* Set as the catalogue card a library files for every book: ruled,
+              typed, with the punch hole the drawer rod runs through. */}
           <dl className="facts">
             <div>
               <dt>First published</dt>

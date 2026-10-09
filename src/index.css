@@ -36,6 +36,31 @@
      explicitly warm palette. */
   --cover-well: #121110;
 
+  /* ---- Paper ------------------------------------------------------------
+     The one light surface in the app: the catalogue card on a book page.
+     A library card is cream stock with red rules and typed entries, and
+     setting the facts on one is what makes a book page look like this app
+     rather than any dark dashboard. Verified: ink on paper 14.6:1, red label
+     on paper 5.9:1. */
+  --paper: #ece4d4;
+  --paper-ink: #1f1b16;
+  --paper-red: #a8321c;
+  --paper-rule: #d6c9b0;
+
+  /* Cloth for a book with no scan on file, and the lobby shelf's spines.
+     Low chroma on purpose: they sit beside real covers and must not out-shout
+     them. */
+  --cloth: #4a231c;
+  --spine-rust: #7d3626;
+  --spine-ink: #2b3340;
+  --spine-ochre: #8c6a2f;
+  --spine-slate: #46515b;
+  --spine-paper: #bfb5a2;
+  --spine-olive: #545b3c;
+
+  --radius: 10px;   /* inputs, panels */
+  --radius-sm: 6px; /* buttons, chips */
+
   /* ---- Type ------------------------------------------------------------
      Six steps replacing sixteen ad-hoc sizes. The ratio widens as the sizes
      grow: dense UI chrome needs fine gradation at the bottom, while headings
@@ -58,9 +83,14 @@
   --dur-fast: 120ms;
   --dur: 180ms;
 
-  /* Inter was declared here but never loaded — no font link exists, so this
-     has always rendered as system-ui. Dropping the dead reference rather
-     than adding a network request for a retune. */
+  /* ---- Families ----------------------------------------------------------
+     A characterful grotesk for anything that names a book or a page, a
+     typewriter mono for the catalogue's own voice (years, counts, labels,
+     stamps), and the platform sans for body copy, which costs nothing to
+     load. Both custom faces are self-hosted with font-display: swap. */
+  --font-display: 'Bricolage Grotesque Variable', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'Cascadia Mono', Menlo, monospace;
+
   color-scheme: dark;
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial,
     sans-serif;
@@ -97,8 +127,23 @@ h3 {
   text-wrap: balance;
 }
 
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+}
+
 p {
   text-wrap: pretty;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 button {

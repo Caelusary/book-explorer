@@ -11,6 +11,7 @@ export default function Layout() {
             <span className="topbar__mark" aria-hidden="true">◆</span>
             Shelf Help
           </Link>
+          <span className="topbar__note">Book search</span>
         </div>
       </header>
 
@@ -25,11 +26,13 @@ export default function Layout() {
       </main>
 
       <footer className="footer">
-        Data from the{' '}
-        <a href="https://openlibrary.org" target="_blank" rel="noreferrer">
-          Open Library
-        </a>
-        .
+        <span>
+          Data from the{' '}
+          <a href="https://openlibrary.org" target="_blank" rel="noreferrer">
+            Open Library
+          </a>
+          .
+        </span>
       </footer>
     </div>
   )

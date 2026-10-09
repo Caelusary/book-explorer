@@ -1,7 +1,8 @@
 import { Link, useLocation } from 'react-router-dom'
 import { coverUrl, workIdFromKey } from '../utils/openLibrary'
+import BlankCover from './BlankCover'
 
-export default function BookCard({ book }) {
+export default function BookCard({ book, index = 0 }) {
   const cover = coverUrl(book.cover_i, 'M')
   const authors = book.author_name?.join(', ') ?? 'Unknown author'
 
@@ -13,7 +14,9 @@ export default function BookCard({ book }) {
   const from = useLocation()
 
   return (
-    <li className="book-card">
+    // The index staggers the arrival of the first row or two; capped in CSS so
+    // a 48-book grid never waits on its last card.
+    <li className="book-card" style={{ '--i': Math.min(index, 11) }}>
       <Link
         className="book-card__link"
         to={`/book/${workIdFromKey(book.key)}`}
@@ -23,7 +26,7 @@ export default function BookCard({ book }) {
           {cover ? (
             <img src={cover} alt={`Cover of ${book.title}`} loading="lazy" />
           ) : (
-            <span className="book-card__no-cover">No cover</span>
+            <BlankCover title={book.title} />
           )}
         </div>
 

@@ -5,6 +5,7 @@ import BookList from '../components/BookList'
 import SearchBar from '../components/SearchBar'
 import SkeletonList from '../components/SkeletonList'
 import LabeledSelect from '../components/LabeledSelect'
+import StatusPanel from '../components/StatusPanel'
 import {
   MIN_QUERY_LENGTH,
   partitionByMatch,
@@ -42,7 +43,10 @@ export default function SearchPage() {
   // grid stays on screen underneath the empty-state prompt, which reads as two
   // pages at once.
   const shouldFetch = query !== '' && !tooShort
-  const requestKey = JSON.stringify([query, sort, mode])
+  // Bumped by "Try again". Part of the request key, so a retry is just a new
+  // request for the same search; failures are never cached, so it really asks.
+  const [attempt, setAttempt] = useState(0)
+  const requestKey = JSON.stringify([query, sort, mode, attempt])
 
   // The last settled response, tagged with the request that produced it.
   // Loading, results and error are all derived from whether that tag matches
@@ -146,23 +150,35 @@ export default function SearchPage() {
       {loading && <SkeletonList count={12} />}
 
       {!loading && error && (
-        <div className="status status--error" role="alert">
-          <p>{error}</p>
-        </div>
+        <StatusPanel stamp="Request failed" tone="error" role="alert">
+          <p className="status__text">{error}</p>
+          <button
+            className="button-link"
+            type="button"
+            onClick={() => setAttempt((n) => n + 1)}
+          >
+            Try again
+          </button>
+        </StatusPanel>
       )}
 
       {/* Reserved for a genuinely empty response, which is the condition the
           brief names. Anything the API did return is shown instead. */}
       {tooShort && (
-        <div className="status">
-          <p>Type at least {MIN_QUERY_LENGTH} characters to search.</p>
-        </div>
+        <StatusPanel stamp="Too short">
+          <p className="status__text">
+            Type at least {MIN_QUERY_LENGTH} characters to search.
+          </p>
+        </StatusPanel>
       )}
 
       {!loading && !error && query && !tooShort && books.length === 0 && (
-        <div className="status">
-          <p>No books found.</p>
-        </div>
+        <StatusPanel stamp="No record">
+          <p className="status__text">No books found.</p>
+          <p className="status__hint">
+            Check the spelling, or switch “Search by” to title or author.
+          </p>
+        </StatusPanel>
       )}
 
       {!loading && !error && query && !tooShort && showingClosest && (
@@ -182,9 +198,11 @@ export default function SearchPage() {
       )}
 
       {!query && (
-        <div className="status">
-          <p>Type something into the search box above to get started.</p>
-        </div>
+        <StatusPanel stamp="Blank slip">
+          <p className="status__text">
+            Type something into the search box above to get started.
+          </p>
+        </StatusPanel>
       )}
     </div>
   )

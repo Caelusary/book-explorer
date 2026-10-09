@@ -133,6 +133,9 @@ src/
     SkeletonList.jsx       loading placeholders
     LabeledSelect.jsx      the “Search by” / “Sort by” dropdown
     AlsoSearched.jsx       near-miss row under the results
+    StatusPanel.jsx        stamped panel for empty, error and not-found states
+    BlankCover.jsx         cloth binding drawn for books with no cover scan
+    Shelf.jsx              static row of spines under the lobby search
   pages/
     HomePage.jsx           heading, tagline, search field
     SearchPage.jsx         results, loading, empty, error
@@ -172,11 +175,24 @@ To run the tests:
 npm test              # once
 npm run test:watch    # on change
 npm run test:coverage # with a coverage report
+npm run e2e           # Playwright + axe against the production build
 ```
+
+The end-to-end suite runs the main journey on a Pixel 7 and on desktop,
+scans every screen with axe (WCAG 2 A/AA, fails on serious or critical), and
+covers no results, short queries, server errors and a dropped connection.
+Every Open Library request is answered from `e2e/fixtures.js`, so it never
+touches the live API. `vite preview` serves the production headers from
+`vercel.json`, and any Content-Security-Policy violation fails the run.
 
 ## Tech stack
 
-React 19, React Router 7, Vite, plain CSS. Tested with Vitest and React Testing
-Library, with jest-axe covering accessibility. Linted with oxlint. No API key
+React 19, React Router 7, Vite, plain CSS. Bricolage Grotesque and IBM Plex
+Mono are self-hosted through Fontsource. Tested with Vitest and React Testing
+Library, with jest-axe covering accessibility, and end to end with Playwright
+and axe-core. Linted with oxlint. No API key
 required — Open Library is public. `vercel.json` rewrites all routes to `index.html` so deep links like
-`/book/OL27448W` work on a fresh load.
+`/book/OL27448W` work on a fresh load, and sets a strict
+Content-Security-Policy (only Open Library for data and its cover hosts for
+images), `nosniff`, a referrer policy, frame denial and long-lived caching on
+hashed assets.

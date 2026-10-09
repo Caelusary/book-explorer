@@ -31,3 +31,7 @@ dist-ssr
 
 # test coverage output
 coverage
+
+# playwright output
+playwright-report
+test-results

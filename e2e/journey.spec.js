@@ -98,9 +98,19 @@ test('a query under three characters is explained without a request', async ({ p
 })
 
 test('a server error reads as English, not a status code', async ({ page }) => {
+  let attempts = 0
+  page.on('request', (req) => {
+    if (req.url().includes('/search.json')) attempts += 1
+  })
   await page.goto('/search?q=fail')
   await expect(page.getByRole('alert')).toContainText('Open Library is having trouble')
   await expectAccessible(page, 'server error')
+
+  // "Try again" really asks again: failures are never served from the cache.
+  const before = attempts
+  await page.getByRole('button', { name: 'Try again' }).click()
+  await expect(page.getByRole('alert')).toBeVisible()
+  await expect.poll(() => attempts).toBeGreaterThan(before)
 })
 
 test('a dropped connection says to check it', async ({ page }) => {
